@@ -1,1 +1,1 @@
-# Ansible_new
+# Ansible sample code for automation.
