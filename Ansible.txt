@@ -1,0 +1,300 @@
+Install_pacjages.yml
+----------------------------- install a package.
+---
+- name: this playbook installs a packages
+  hosts: websevers
+  become: True
+  tasks:
+  - name: install package
+    yum:
+      name: git
+      state: installed
+--------------------------------- install a package.
+---
+- name: This playbook install packages
+  hosts: appserver-amazon-managed-node
+  become: True
+  tasks:
+  - name: install package
+    yum:
+    #   name: ['tree', 'wget', 'telnet', 'gzip']
+      name: "{{ item }}"
+      state: installed
+    with_items:
+      - git
+      - make
+      - gcc
+      - wget
+      - telnet
+      - gzip
+
+---------------------------------- create a user using variables.
+---
+- name: this playbook is to create a user
+  hosts: all
+  become: True
+  vars:
+    user: modi
+  tasks:
+  - name: creating user john
+    user:
+      name: "{{ user }}"
+
+---------------------------------> create a file.
+---
+- name: this playbook creates a file or dir
+  hosts: all
+  become: True
+  tasks:
+  - name: creating a file
+    file:
+      path: /home/ansadmin/demofile
+      state: touch
+--------------------------------- creat a directory.
+---
+- name: this playbook creates a directory
+  hosts: all
+  # become: True
+  tasks:
+  - name: creating a directory
+    file:
+      path: /home/ansadmin/dir1
+      state: directory
+--------------------------------- remove a directory.
+---
+- name: this playbook creates a directory
+  hosts: all
+  # become: True
+  tasks:
+  - name: creating a directory
+    file:
+      path: /home/ansadmin/dir1
+      state: absent
+--------------------------------- copy a file.
+---
+- name: ansible playbook to copy a file
+  hosts: all
+  become: True
+  tasks:
+  - name: copy a file
+    copy:
+      src: /opt/ansible/index.html
+      desc: /home/ansadmin
+      mode: 0600
+      owner: John
+--------------------------------- install httpd.
+---
+- name: this playbook install httpd
+  hosts: appserver-amazon-managed-node
+  become: True
+  tasks:
+  - name: install package
+    yum:
+      name: httpd
+      state: installed
+  - name: start httpd service
+    service:
+      name: httpd
+      state: started
+--------------------------------- uninstall httpd.
+---
+- name: this playbook uninstall httpd
+  hosts: appserver-amazon-managed-node
+  become: True
+  tasks:
+  - name: stop httpd service
+    service:
+      name: httpd
+      state: stopped
+
+    - name: uninstall package
+    yum:
+      name: httpd
+      state: removed
+---------------------------------install httpd with handler .
+---
+- name: this playbook install httpd through handler
+  hosts: webserver-rhcl-managed-node
+  become: True
+  tasks:
+  - name: install package
+    yum:
+      name: httpd
+      state: installed
+    notify: start apache
+
+  handlers:
+  - name: start apache
+    service:
+      name: httpd
+      state: started
+
+---------------------------------uninstall httpd with handler .
+---
+- name: this playbook uninstall httpd through handler
+  hosts: webserver-rhcl-managed-node
+  become: True
+  tasks:
+  - name: stop httpd service
+    service:
+      name: httpd
+      state: stopped
+    notify: httpd remove
+
+  handlers:
+   - name: httpd remove
+     yum:
+      name: httpd
+      state: removed
+---------------------------------install apache package through when condition in different linux server distribution. .
+---
+- name: install apache httpd in all servers
+  hosts: all
+  become: True
+  tasks:
+  - name: install package
+    yum:
+      name: httpd
+      state: installed
+    when: ansible_os_family == "RedHat"
+
+  - name: start apache
+    service:
+      name: httpd
+      state: started
+    when: ansible_os_family == "RedHat"
+
+
+  - name: install apache2
+    apt:
+      name: apache2
+      state: present
+    when: ansible_os_family == "Debian"
+
+
+  - name: start apache2
+    service:
+      name: apache2
+      state: started
+    when: ansible_os_family == "Debian"
+
+  - name: copy a file
+    copy:
+    src: /opt/ansible/index.html
+    dest: /var/www/html
+    mode: 0666
+
+-------------------------------------------- Uninstall apache package through when condition in different linux server distribution.
+
+---
+- name: uninstall apache httpd in all servers
+  hosts: all
+  become: True
+  tasks:
+  - name: stop httpd service
+    service:
+      name: httpd
+      state: stopped
+    when: ansible_os_family == "RedHat"
+
+  - name: remove apache
+    yum:
+      name: httpd
+      state: removed
+    when: ansible_os_family == "RedHat"
+
+
+  - name: stop service apache2
+    service:
+      name: apache2
+      state: stopped
+    when: ansible_os_family == "Debian"
+
+
+  - name: uninstall apache2
+    apt:
+      name: apache2
+      state: absent
+    when: ansible_os_family == "Debian"
+
+---------------------------------------- Install apache tomcat in all hosts.
+---
+- name: install and setup tomcat
+  hosts: all
+  become: True
+  tasks:
+  - name: install Java
+    yum:
+      name: java
+      state: installed
+    when: ansible_os_family  == "RedHat"
+
+  - name: install java in ubuntu machine
+    apt:
+      name: default-jdk
+      state: present
+    when: ansible_os_family == "Debian"
+
+  - name: download tomcat packages
+    get_url:
+      url: http://apache.uib.no/tomcat/tomcat-8/v8.5.51/bin/apache-tomcat-8.5.51.tar.gz
+      dest: /opt
+
+  - name: untar apache packages
+    unarchive:
+       src: /opt/apache-tomcat-8.5.51.tar.gz
+       dest: /opt
+       remote_src: yes
+
+  - name: add execution permission on startup file
+    file:
+      path: /opt/apache-tomcat-8.5.51/bin/startup.sh
+      mode: 0777
+
+  - name: start tomcat service
+    shell: nohup ./startup.sh
+    args:
+      chdir: /opt/apache-tomcat-8.5.51/bin
+----------------------------------------------------  using tags in order to mark installation of the code. 
+---
+- name: install apache httpd in all servers
+  hosts: all
+  become: True
+  tasks:
+  - name: install package
+    yum:
+      name: httpd
+      state: installed
+    when: ansible_os_family == "RedHat"
+    tags: install_apache
+    ignore_error = yes
+
+  - name: start apache
+    service:
+      name: httpd
+      state: started
+    when: ansible_os_family == "RedHat"
+    tags: start_apache
+
+  - name: install apache2
+    apt:
+      name: apache2
+      state: present
+    when: ansible_os_family == "Debian"
+    tags: install_apache
+
+  - name: start apache2
+    service:
+      name: apache2
+      state: started
+    when: ansible_os_family == "Debian"
+    tags: start_apache
+
+  - name: copy index.html
+    copy:
+      src: /opt/ansible/index.html
+      dest: /var/www/html
+      mode: 0666
+---------------------------------------------------
+ansible-playbook -i hosts install_apache_httpd.yml --tag "install_apache" --check
+---------------------------------------------------
